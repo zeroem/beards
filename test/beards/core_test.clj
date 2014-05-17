@@ -4,7 +4,7 @@
 
 
 
-#_(deftest basic-functionality-tests
+(deftest basic-functionality-tests
   (testing "I can parse a plain string"
     (is (= (render "herp") "herp")))
 
