@@ -1,9 +1,17 @@
 (ns beards.renderer)
 
 (declare render)
+
 (defn make-cursor [token]
   (->> (clojure.string/split (:expression token) #"\.")
        (map keyword)))
+
+(defn escape-html [s]
+  (clojure.string/escape s
+                         {\& "&amp;"
+                          \< "&lt;"
+                          \> "&gt;"
+                          \" "&quot;"}))
 
 (defmulti render-token (fn [state token data] (:type token)))
 
@@ -16,6 +24,10 @@
   [state (subs (:s state) start-pos end-pos)])
 
 (defmethod render-token :lookup [state token data]
+  (let [cursor (make-cursor token)]
+    [state (escape-html (str (get-in data cursor)))]))
+
+(defmethod render-token :no-escape [state token data]
   (let [cursor (make-cursor token)]
     [state (str (get-in data cursor))]))
 
@@ -36,6 +48,11 @@
                  (update-in section-state [:tokens] conj t)))
         (throw (IllegalArgumentException. "EOF before end of section"))))))
 
+(defn falsey? [v]
+  (cond (false? v) true
+        (empty? v) true
+        :else false))
+
 (defmethod render-token :start-section [state token data]
   (let [target (get-in data (make-cursor token))
         [exit-state section-state] (capture-section state token)]
@@ -47,10 +64,24 @@
      [exit-state
       (->> target
            (map (fn [d] (render section-state d)))
-           (apply str))
+           (apply str))]
 
-      ((some-fn empty? false?) target)
-      [exit-state ""]])))
+     (falsey? target)
+     [exit-state ""]
+
+     :else
+     (throw (RuntimeException. "I have no clue what to do with this")))))
+
+(defmethod render-token :start-inverse-section [state token data]
+  (let [target (get-in data (make-cursor token))
+        [exit-state section-state] (capture-section state token)]
+    (cond
+     (falsey? target)
+     [exit-state (render section-state {})]
+
+     :else
+     [exit-state ""])))
+
 
 (defmethod render-token :stop-section [& _]
   (throw (RuntimeException. "We should never get here.")))

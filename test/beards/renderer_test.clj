@@ -34,4 +34,10 @@
     (let [s "{{#foo}}{{bar}}{{/foo}}"
           state (parse s)
           result (render state {:foo nil})]
-      (is (= result "")))))
+      (is (= result ""))))
+
+  (testing "A false value will not render"
+    (let [s "{{^foo}}missing{{/foo}}"
+          state (parse s)
+          result (render state {:foo nil})]
+      (is (= result "missing")))))
