@@ -90,11 +90,18 @@
          (- stop (count (end-delim current-delims))))))
 
 (defn form-token [{:keys [s pos current-delims] :as state} stop]
-  {:type (parse-form-type state)
-   :original (subs s pos stop)
-   :expression (parse-form-expression state stop)
-   :start-pos pos
-   :stop-pos stop})
+  (let [base-token {:type (parse-form-type state)
+                    :original (subs s pos stop)
+                    :start-pos pos}
+        stop-expression (if (= (:type base-token) :change-delims)
+                          (dec stop)
+                          stop)]
+    (merge base-token {:expression (parse-form-expression state stop-expression)
+                       :stop-pos stop})))
+
+(defn parse-new-delims [token]
+  ;; Gonna need some syntax checking here
+  (clojure.string/split (:expression token) #" "))
 
 (defn parse-form [{:keys [s delims tokens current-delims] :as state}]
   (let [end-delim (end-delim current-delims)
@@ -108,11 +115,14 @@
                     end-delim
                     ", but found: "
                     found-delim))))
-    (let [after-delim-pos (+ end-pos (count end-delim))]
-      (merge-state state
-                   {:pos after-delim-pos
-                    :tokens (conj tokens
-                                  (form-token state after-delim-pos))}))))
+    (let [after-delim-pos (+ end-pos (count end-delim))
+          token (form-token state after-delim-pos)
+          new-state {:pos after-delim-pos
+                     :tokens (conj tokens token)}
+          final-state (if (= (:type token) :change-delims)
+                        (assoc new-state :delims (parse-new-delims token))
+                        new-state)]
+      (merge-state state final-state))))
 
 (defn parse [template]
   (loop [state (new-state template)]

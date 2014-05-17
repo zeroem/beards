@@ -67,6 +67,14 @@
       (is (= (:expression token) "section-expression"))
       (is (= (:original token) s)))))
 
+(deftest parse-change-delim-form-test
+  (testing "The mustache delimiters can be changed"
+    (let [s "This is {{=HERP HERP=}} and HERP=DERP DERP=HERP"
+          first-state (-> s prep-form-str parse-form)
+          last-state (-> first-state parse-to-start-delim parse-form)]
+      (is (= (:delims first-state) ["HERP" "HERP"]))
+      (is (= (:delims last-state ["DERP" "DERP"]))))))
+
 
 #_(deftest basic-functionality-tests
   (testing "I can parse a plain string"
