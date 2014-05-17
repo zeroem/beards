@@ -69,22 +69,25 @@
 (defn char-after-delim [{:keys [s pos current-delims]}]
   (get s (+ pos (count (first current-delims)))))
 
-(defn parse-form-type [{:keys [s pos current-delims] :as state}]
+(defn parse-form-type [{:keys [current-delims] :as state}]
   (if (= current-delims no-escape-delims)
     :no-escape
     (get section-types
          (char-after-delim state)
          :lookup)))
 
-(defn section-form? [state]
-  (not (= (parse-form-type state) :lookup)))
+(defn trim-first-char? [{:keys [current-delims] :as state}]
+  (if (= current-delims no-escape-delims)
+    false
+    (get section-types
+         (char-after-delim state))))
 
 (defn parse-form-expression [{:keys [s pos current-delims] :as state} stop]
   (clojure.string/trim
    (subs s
          (+ pos
             (count (start-delim current-delims))
-            (if (section-form? state) 1 0))
+            (if (trim-first-char? state) 1 0))
          (- stop (count (end-delim current-delims))))))
 
 (defn form-token [{:keys [s pos current-delims] :as state} stop]

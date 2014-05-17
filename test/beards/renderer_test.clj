@@ -40,4 +40,10 @@
     (let [s "{{^foo}}missing{{/foo}}"
           state (parse s)
           result (render state {:foo nil})]
-      (is (= result "missing")))))
+      (is (= result "missing"))))
+
+  (testing "html gets escaped properly"
+    (let [s "{{& foo}}{{foo}}{{{foo}}}"
+          state (parse s)
+          result (render state {:foo "\""})]
+      (is (= result "\"&quot;\"")))))
